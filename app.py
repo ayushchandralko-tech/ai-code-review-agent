@@ -135,7 +135,7 @@ def render_sidebar():
 
 def render_main_input():
     """Render the main input section."""
-    st.markdown('<div class="main-header">🤖 AI Code Review Agent</div>', unsafeallow_html=True)
+    st.markdown('<div class="main-header">🤖 AI Code Review Agent</div>', unsafe_allow_html=True)
     st.markdown("Autonomous code analysis with confidence-rated review comments")
     
     st.divider()
