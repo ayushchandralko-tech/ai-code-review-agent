@@ -106,10 +106,12 @@ If no issues are found, return an empty array: []"""
             if not github_token:
                 raise ValueError("GITHUB_TOKEN environment variable not set for GitHub Models")
             
+            # GitHub Models uses Azure AI endpoint
             self.client = OpenAI(
                 base_url="https://models.inference.ai.azure.com",
                 api_key=github_token
             )
+            print(f"Initialized GitHub Models client with model: {model}")
         else:
             # Use OpenAI
             openai_key = os.getenv("OPENAI_API_KEY")
@@ -117,6 +119,7 @@ If no issues are found, return an empty array: []"""
                 raise ValueError("OPENAI_API_KEY environment variable not set")
             
             self.client = OpenAI(api_key=openai_key)
+            print(f"Initialized OpenAI client with model: {model}")
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     def review_code(self, code: str, file_path: str, context: str = "") -> List[ReviewComment]:
@@ -134,6 +137,9 @@ If no issues are found, return an empty array: []"""
         user_prompt = self._build_user_prompt(code, file_path, context)
         
         try:
+            print(f"Sending request to {self.model} via {'GitHub Models' if self.use_github_models else 'OpenAI'}")
+            print(f"Code length: {len(code)} characters")
+            
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
@@ -145,6 +151,8 @@ If no issues are found, return an empty array: []"""
             )
             
             content = response.choices[0].message.content
+            print(f"Received response from LLM, length: {len(content)}")
+            
             result = json.loads(content)
             
             # Handle both array and object responses
@@ -172,6 +180,7 @@ If no issues are found, return an empty array: []"""
                 )
                 comments.append(comment)
             
+            print(f"Generated {len(comments)} review comments")
             return comments
             
         except json.JSONDecodeError as e:
@@ -180,6 +189,8 @@ If no issues are found, return an empty array: []"""
             return []
         except Exception as e:
             print(f"Error during LLM review: {e}")
+            import traceback
+            traceback.print_exc()
             return []
     
     def _build_user_prompt(self, code: str, file_path: str, context: str) -> str:
