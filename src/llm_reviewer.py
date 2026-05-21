@@ -1,0 +1,237 @@
+"""LLM integration module for code review using OpenAI GPT-4o-mini."""
+
+import json
+import os
+from typing import List, Dict, Any, Optional
+from dataclasses import dataclass, asdict
+from openai import OpenAI
+from dotenv import load_dotenv
+from tenacity import retry, stop_after_attempt, wait_exponential
+
+# Load environment variables
+load_dotenv()
+
+
+@dataclass
+class ReviewComment:
+    """Represents a code review comment."""
+    file_path: str
+    line_number: int
+    severity: str  # 'critical', 'high', 'medium', 'low', 'info'
+    category: str  # 'security', 'performance', 'style', 'bug', 'documentation', 'best_practice'
+    message: str
+    suggestion: str
+    confidence: float  # 0.0 to 1.0
+    code_snippet: str
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return asdict(self)
+    
+    def to_markdown(self) -> str:
+        """Convert to markdown format."""
+        confidence_percent = int(self.confidence * 100)
+        emoji = self._get_emoji()
+        
+        md = f"{emoji} **{self.severity.upper()}** - {self.category}\n\n"
+        md += f"**File:** `{self.file_path}:{self.line_number}`\n"
+        md += f"**Confidence:** {confidence_percent}%\n\n"
+        md += f"**Issue:** {self.message}\n\n"
+        md += f"**Suggestion:** {self.suggestion}\n\n"
+        md += f"```python\n{self.code_snippet}\n```\n"
+        md += "---\n"
+        
+        return md
+    
+    def _get_emoji(self) -> str:
+        """Get emoji based on severity."""
+        emojis = {
+            'critical': '🚨',
+            'high': '⚠️',
+            'medium': '⚡',
+            'low': '💡',
+            'info': 'ℹ️'
+        }
+        return emojis.get(self.severity, '📝')
+
+
+class LLMReviewer:
+    """Review code using OpenAI GPT-4o-mini."""
+    
+    SYSTEM_PROMPT = """You are an expert code reviewer with deep knowledge of software engineering best practices, security vulnerabilities, performance optimization, and clean code principles.
+
+Your task is to review the provided code snippet and generate structured feedback in JSON format.
+
+For each issue you identify, you must:
+1. Assign a severity level: 'critical', 'high', 'medium', 'low', or 'info'
+2. Categorize the issue: 'security', 'performance', 'style', 'bug', 'documentation', or 'best_practice'
+3. Provide a clear, actionable message explaining the issue
+4. Suggest a specific fix or improvement
+5. Rate your confidence in this review (0.0 to 1.0) based on:
+   - How clear the issue is
+   - How certain you are about the fix
+   - Whether there are alternative interpretations
+   - Context completeness
+
+Be conservative with confidence scores. If you're unsure, assign a lower confidence (0.3-0.6). If you're very certain, assign higher confidence (0.8-1.0).
+
+Return ONLY a JSON array with the following structure:
+[
+  {
+    "line_number": <int>,
+    "severity": "<string>",
+    "category": "<string>",
+    "message": "<string>",
+    "suggestion": "<string>",
+    "confidence": <float between 0.0 and 1.0>
+  }
+]
+
+If no issues are found, return an empty array: []"""
+    
+    def __init__(self, model: str = "gpt-4o-mini"):
+        """
+        Initialize the LLM reviewer.
+        
+        Args:
+            model: OpenAI model to use
+        """
+        self.model = model
+        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        
+        if not os.getenv("OPENAI_API_KEY"):
+            raise ValueError("OPENAI_API_KEY environment variable not set")
+    
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+    def review_code(self, code: str, file_path: str, context: str = "") -> List[ReviewComment]:
+        """
+        Review a code snippet using the LLM.
+        
+        Args:
+            code: Code snippet to review
+            file_path: Path to the file being reviewed
+            context: Additional context about the code
+            
+        Returns:
+            List of ReviewComment objects
+        """
+        user_prompt = self._build_user_prompt(code, file_path, context)
+        
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": self.SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.3,  # Lower temperature for more consistent output
+                response_format={"type": "json_object"}
+            )
+            
+            content = response.choices[0].message.content
+            result = json.loads(content)
+            
+            # Handle both array and object responses
+            if isinstance(result, dict):
+                comments_data = result.get("comments", result.get("issues", []))
+            else:
+                comments_data = result
+            
+            # Convert to ReviewComment objects
+            comments = []
+            for comment_data in comments_data:
+                # Extract code snippet around the line
+                line_number = comment_data.get("line_number", 1)
+                code_snippet = self._extract_code_snippet(code, line_number)
+                
+                comment = ReviewComment(
+                    file_path=file_path,
+                    line_number=line_number,
+                    severity=comment_data.get("severity", "info"),
+                    category=comment_data.get("category", "best_practice"),
+                    message=comment_data.get("message", ""),
+                    suggestion=comment_data.get("suggestion", ""),
+                    confidence=min(max(comment_data.get("confidence", 0.5), 0.0), 1.0),
+                    code_snippet=code_snippet
+                )
+                comments.append(comment)
+            
+            return comments
+            
+        except json.JSONDecodeError as e:
+            print(f"Failed to parse LLM response as JSON: {e}")
+            print(f"Raw response: {content}")
+            return []
+        except Exception as e:
+            print(f"Error during LLM review: {e}")
+            return []
+    
+    def _build_user_prompt(self, code: str, file_path: str, context: str) -> str:
+        """Build the user prompt for the LLM."""
+        prompt = f"""Review the following code from `{file_path}`.
+
+"""
+        if context:
+            prompt += f"Context: {context}\n\n"
+        
+        prompt += f"""```python
+{code}
+```
+
+Please analyze this code and provide your review in the specified JSON format."""
+        
+        return prompt
+    
+    def _extract_code_snippet(self, code: str, line_number: int, context_lines: int = 3) -> str:
+        """Extract a code snippet around a specific line."""
+        lines = code.split('\n')
+        
+        # Adjust for 1-based indexing
+        line_idx = line_number - 1
+        
+        start_idx = max(0, line_idx - context_lines)
+        end_idx = min(len(lines), line_idx + context_lines + 1)
+        
+        snippet_lines = lines[start_idx:end_idx]
+        
+        # Add line numbers
+        numbered_lines = []
+        for i, line in enumerate(snippet_lines, start=start_idx + 1):
+            marker = ">>> " if i == line_number else "    "
+            numbered_lines.append(f"{marker}{i}: {line}")
+        
+        return '\n'.join(numbered_lines)
+    
+    def review_multiple_chunks(self, chunks: List[tuple]) -> List[ReviewComment]:
+        """
+        Review multiple code chunks.
+        
+        Args:
+            chunks: List of (code, file_path, context) tuples
+            
+        Returns:
+            List of all ReviewComment objects
+        """
+        all_comments = []
+        
+        for code, file_path, context in chunks:
+            comments = self.review_code(code, file_path, context)
+            all_comments.extend(comments)
+        
+        return all_comments
+    
+    def filter_by_confidence(self, comments: List[ReviewComment], threshold: float = 0.7) -> tuple:
+        """
+        Filter comments by confidence threshold.
+        
+        Args:
+            comments: List of ReviewComment objects
+            threshold: Confidence threshold (0.0 to 1.0)
+            
+        Returns:
+            Tuple of (high_confidence_comments, low_confidence_comments)
+        """
+        high_conf = [c for c in comments if c.confidence >= threshold]
+        low_conf = [c for c in comments if c.confidence < threshold]
+        
+        return high_conf, low_conf
