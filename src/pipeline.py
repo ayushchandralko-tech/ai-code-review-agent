@@ -115,7 +115,7 @@ class CodeReviewPipeline:
         Review a single file.
         
         Args:
-            file_path: Path to the file
+            file_path: Path to the file (already full path from parser)
             nodes: AST nodes from the file
             repo_path: Base repository path
             
@@ -124,10 +124,9 @@ class CodeReviewPipeline:
         """
         comments = []
         
-        # Read the file content
-        full_path = repo_path / file_path
+        # Read the file content (file_path is already full path from parser)
         try:
-            with open(full_path, 'r', encoding='utf-8') as f:
+            with open(file_path, 'r', encoding='utf-8') as f:
                 source = f.read()
         except Exception as e:
             print(f"Error reading {file_path}: {e}")
