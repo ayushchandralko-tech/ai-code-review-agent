@@ -66,23 +66,41 @@ def render_sidebar():
     """Render the sidebar with configuration options."""
     st.sidebar.title("⚙️ Configuration")
     
-    # API Key input
-    api_key = st.sidebar.text_input(
-        "OpenAI API Key",
-        type="password",
-        help="Enter your OpenAI API key to enable code review"
+    # LLM Provider selection
+    llm_provider = st.sidebar.radio(
+        "LLM Provider",
+        ["OpenAI", "GitHub Models"],
+        help="Choose between OpenAI API or GitHub Models (free tier available)"
     )
-    if api_key:
-        os.environ["OPENAI_API_KEY"] = api_key
     
-    # GitHub Token (optional)
-    github_token = st.sidebar.text_input(
-        "GitHub Token (Optional)",
+    if llm_provider == "OpenAI":
+        # OpenAI API Key input
+        api_key = st.sidebar.text_input(
+            "OpenAI API Key",
+            type="password",
+            help="Enter your OpenAI API key to enable code review"
+        )
+        if api_key:
+            os.environ["OPENAI_API_KEY"] = api_key
+    else:
+        # GitHub Token input
+        github_token = st.sidebar.text_input(
+            "GitHub Token",
+            type="password",
+            help="Enter your GitHub token for GitHub Models (free tier available)"
+        )
+        if github_token:
+            os.environ["GITHUB_TOKEN"] = github_token
+    
+    # GitHub Token for PR comments (optional, separate from LLM)
+    st.sidebar.divider()
+    pr_github_token = st.sidebar.text_input(
+        "GitHub Token for PR Comments (Optional)",
         type="password",
-        help="Enter your GitHub token to post PR comments"
+        help="Enter your GitHub token to post PR comments (if different from LLM token)"
     )
-    if github_token:
-        os.environ["GITHUB_TOKEN"] = github_token
+    if pr_github_token:
+        os.environ["GITHUB_PR_TOKEN"] = pr_github_token
     
     st.sidebar.divider()
     
@@ -100,7 +118,7 @@ def render_sidebar():
     model = st.sidebar.selectbox(
         "LLM Model",
         ["gpt-4o-mini", "gpt-4o"],
-        help="Select the OpenAI model to use for code review"
+        help="Select the model to use for code review"
     )
     
     # Max files (for testing)
@@ -112,12 +130,12 @@ def render_sidebar():
         help="Limit the number of files to analyze (for testing)"
     )
     
-    return confidence_threshold, model, max_files
+    return confidence_threshold, model, max_files, llm_provider
 
 
 def render_main_input():
     """Render the main input section."""
-    st.markdown('<div class="main-header">🤖 AI Code Review Agent</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">🤖 AI Code Review Agent</div>', unsafeallow_html=True)
     st.markdown("Autonomous code analysis with confidence-rated review comments")
     
     st.divider()
@@ -397,7 +415,7 @@ def main():
     initialize_session_state()
     
     # Render sidebar
-    confidence_threshold, model, max_files = render_sidebar()
+    confidence_threshold, model, max_files, llm_provider = render_sidebar()
     
     # Render main input
     input_method, input_value, pr_number, repo_name = render_main_input()
@@ -405,24 +423,36 @@ def main():
     # Review button
     st.divider()
     
+    # Check if required API key is set
+    if llm_provider == "OpenAI":
+        api_key_set = bool(os.getenv("OPENAI_API_KEY"))
+        warning_message = "⚠️ Please enter your OpenAI API Key in the sidebar to enable code review"
+    else:
+        api_key_set = bool(os.getenv("GITHUB_TOKEN"))
+        warning_message = "⚠️ Please enter your GitHub Token in the sidebar to enable code review"
+    
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         review_button = st.button(
             "🚀 Start Code Review",
             type="primary",
-            disabled=st.session_state.review_in_progress or not os.getenv("OPENAI_API_KEY")
+            disabled=st.session_state.review_in_progress or not api_key_set
         )
     
-    if not os.getenv("OPENAI_API_KEY"):
-        st.warning("⚠️ Please enter your OpenAI API Key in the sidebar to enable code review")
+    if not api_key_set:
+        st.warning(warning_message)
     
     # Handle review request
-    if review_button and os.getenv("OPENAI_API_KEY"):
+    if review_button and api_key_set:
         st.session_state.review_in_progress = True
         
         try:
-            # Create pipeline
-            pipeline = CodeReviewPipeline(confidence_threshold=confidence_threshold)
+            # Create pipeline with correct provider
+            use_github = (llm_provider == "GitHub Models")
+            pipeline = CodeReviewPipeline(
+                confidence_threshold=confidence_threshold,
+                use_github_models=use_github
+            )
             pipeline.reviewer.model = model
             
             # Show progress

@@ -168,7 +168,9 @@ The system follows a modular pipeline architecture with clear separation of conc
 ### Prerequisites
 
 - **Python 3.8+** - Download from [python.org](https://www.python.org/downloads/)
-- **OpenAI API Key** - Obtain from [platform.openai.com](https://platform.openai.com/api-keys)
+- **API Key** - Choose one:
+  - **OpenAI API Key** - Obtain from [platform.openai.com](https://platform.openai.com/api-keys)
+  - **GitHub Token** - For GitHub Models (free tier available), create at [github.com/settings/tokens](https://github.com/settings/tokens)
 - **GitHub Token** (Optional) - For PR commenting, create at [github.com/settings/tokens](https://github.com/settings/tokens)
 
 ### Installation
@@ -204,14 +206,19 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Edit `.env` and add your OpenAI API key:
+**Option A: Using OpenAI API**
 ```env
 OPENAI_API_KEY=sk-your-actual-api-key-here
 ```
 
-Optionally add your GitHub token for PR commenting:
+**Option B: Using GitHub Models (Free Tier)**
 ```env
 GITHUB_TOKEN=ghp_your-github-token-here
+```
+
+Optionally add your GitHub token for PR commenting:
+```env
+GITHUB_PR_TOKEN=ghp_your-github-token-here
 ```
 
 ### Running the Application
@@ -230,28 +237,35 @@ The dashboard will automatically open at `http://localhost:8501`
 
 ### GitHub Repository Review
 
-1. **Enter API Key**: Input your OpenAI API key in the sidebar configuration panel
-2. **Provide Repository URL**: Enter a GitHub repository URL (e.g., `https://github.com/username/repository`)
-3. **Optional PR Integration**: 
+1. **Select LLM Provider**: Choose between "OpenAI" or "GitHub Models" in the sidebar
+2. **Enter API Key**: 
+   - For OpenAI: Input your OpenAI API key
+   - For GitHub Models: Input your GitHub token (free tier available)
+3. **Provide Repository URL**: Enter a GitHub repository URL (e.g., `https://github.com/username/repository`)
+4. **Optional PR Integration**: 
    - Enter the PR number to post comments directly
    - Provide the repository name in `owner/repo` format
-4. **Start Review**: Click the "Start Code Review" button
-5. **Review Results**: Explore the interactive dashboard with filtering options
+5. **Start Review**: Click the "Start Code Review" button
+6. **Review Results**: Explore the interactive dashboard with filtering options
 
 ### Local Directory Review
 
-1. **Enter API Key**: Input your OpenAI API key in the sidebar
-2. **Select Input Method**: Choose "Local Directory" from the input options
-3. **Provide Path**: Enter the absolute path to your local code directory
-4. **Start Review**: Click "Start Code Review"
-5. **Review Results**: Analyze the generated comments and insights
+1. **Select LLM Provider**: Choose between "OpenAI" or "GitHub Models" in the sidebar
+2. **Enter API Key**: 
+   - For OpenAI: Input your OpenAI API key
+   - For GitHub Models: Input your GitHub token (free tier available)
+3. **Select Input Method**: Choose "Local Directory" from the input options
+4. **Provide Path**: Enter the absolute path to your local code directory
+5. **Start Review**: Click "Start Code Review"
+6. **Review Results**: Analyze the generated comments and insights
 
 ### Configuration Options
 
 | Parameter | Description | Default | Options |
 |-----------|-------------|---------|---------|
+| **LLM Provider** | Choose between OpenAI or GitHub Models | OpenAI | OpenAI, GitHub Models |
 | **Confidence Threshold** | Minimum confidence for high-confidence comments | 0.7 | 0.0 - 1.0 |
-| **LLM Model** | OpenAI model for code analysis | gpt-4o-mini | gpt-4o-mini, gpt-4o |
+| **LLM Model** | Model for code analysis | gpt-4o-mini | gpt-4o-mini, gpt-4o |
 | **Max Files** | Limit number of files to analyze | None | 1 - 100 |
 
 ### Filtering Results
@@ -405,8 +419,10 @@ Streamlit Cloud provides the simplest deployment path:
    - Click "Deploy"
 5. **Add Secrets**:
    - Go to app settings → Secrets
-   - Add: `OPENAI_API_KEY=sk-your-actual-key-here`
-   - (Optional) Add: `GITHUB_TOKEN=ghp-your-token-here`
+   - Add one of the following:
+     - For OpenAI: `OPENAI_API_KEY=sk-your-actual-key-here`
+     - For GitHub Models: `GITHUB_TOKEN=ghp-your-token-here`
+   - (Optional) Add: `GITHUB_PR_TOKEN=ghp-your-token-here` for PR comments
 6. **Redeploy**: Click "Redeploy" to apply secrets
 
 Your app will be available at: `https://ayushchandralko-tech-ai-code-review-agent.streamlit.app`

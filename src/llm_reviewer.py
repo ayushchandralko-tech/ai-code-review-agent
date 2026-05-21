@@ -1,4 +1,4 @@
-"""LLM integration module for code review using OpenAI GPT-4o-mini."""
+"""LLM integration module for code review using OpenAI GPT-4o-mini or GitHub Models."""
 
 import json
 import os
@@ -56,7 +56,7 @@ class ReviewComment:
 
 
 class LLMReviewer:
-    """Review code using OpenAI GPT-4o-mini."""
+    """Review code using OpenAI GPT-4o-mini or GitHub Models."""
     
     SYSTEM_PROMPT = """You are an expert code reviewer with deep knowledge of software engineering best practices, security vulnerabilities, performance optimization, and clean code principles.
 
@@ -89,18 +89,34 @@ Return ONLY a JSON array with the following structure:
 
 If no issues are found, return an empty array: []"""
     
-    def __init__(self, model: str = "gpt-4o-mini"):
+    def __init__(self, model: str = "gpt-4o-mini", use_github_models: bool = False):
         """
         Initialize the LLM reviewer.
         
         Args:
-            model: OpenAI model to use
+            model: Model to use (e.g., "gpt-4o-mini")
+            use_github_models: Whether to use GitHub Models instead of OpenAI
         """
         self.model = model
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.use_github_models = use_github_models
         
-        if not os.getenv("OPENAI_API_KEY"):
-            raise ValueError("OPENAI_API_KEY environment variable not set")
+        if use_github_models:
+            # Use GitHub Models
+            github_token = os.getenv("GITHUB_TOKEN")
+            if not github_token:
+                raise ValueError("GITHUB_TOKEN environment variable not set for GitHub Models")
+            
+            self.client = OpenAI(
+                base_url="https://models.inference.ai.azure.com",
+                api_key=github_token
+            )
+        else:
+            # Use OpenAI
+            openai_key = os.getenv("OPENAI_API_KEY")
+            if not openai_key:
+                raise ValueError("OPENAI_API_KEY environment variable not set")
+            
+            self.client = OpenAI(api_key=openai_key)
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     def review_code(self, code: str, file_path: str, context: str = "") -> List[ReviewComment]:

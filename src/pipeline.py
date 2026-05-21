@@ -15,18 +15,19 @@ from src.llm_reviewer import LLMReviewer, ReviewComment
 class CodeReviewPipeline:
     """Orchestrates the entire code review pipeline."""
     
-    def __init__(self, base_dir: str = "repos", confidence_threshold: float = 0.7):
+    def __init__(self, base_dir: str = "repos", confidence_threshold: float = 0.7, use_github_models: bool = False):
         """
         Initialize the code review pipeline.
         
         Args:
             base_dir: Base directory for cloned repositories
             confidence_threshold: Threshold for separating high/low confidence comments
+            use_github_models: Whether to use GitHub Models instead of OpenAI
         """
         self.cloner = RepoCloner(base_dir)
         self.parser = ASTParser()
         self.chunker = CodeChunker(max_lines=100, overlap_lines=10)
-        self.reviewer = LLMReviewer(model="gpt-4o-mini")
+        self.reviewer = LLMReviewer(model="gpt-4o-mini", use_github_models=use_github_models)
         self.confidence_threshold = confidence_threshold
         
         self.results = {
