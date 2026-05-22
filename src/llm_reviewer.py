@@ -133,8 +133,10 @@ Do not include any text before or after the JSON. Do not use markdown code block
                 raise ValueError("GEMINI_API_KEY environment variable not set for Gemini")
             
             genai.configure(api_key=gemini_key)
-            self.client = genai.GenerativeModel(model)
-            print(f"Initialized Gemini client with model: {model}")
+            # Use the correct model name format for Gemini API
+            gemini_model = f"models/{model}"
+            self.client = genai.GenerativeModel(gemini_model)
+            print(f"Initialized Gemini client with model: {gemini_model}")
         else:
             # Use OpenAI (default)
             openai_key = os.getenv("OPENAI_API_KEY")
