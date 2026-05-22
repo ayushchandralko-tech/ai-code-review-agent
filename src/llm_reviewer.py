@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, asdict
 from openai import OpenAI
 from dotenv import load_dotenv
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import google.generativeai as genai
 
 # Load environment variables
