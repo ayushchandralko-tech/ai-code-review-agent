@@ -134,7 +134,12 @@ Do not include any text before or after the JSON. Do not use markdown code block
             self.client = OpenAI(api_key=openai_key)
             print(f"Initialized OpenAI client with model: {model}")
     
-    @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=2, min=5, max=60), retry_error_callback=lambda retry_state: None)
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=2, min=5, max=60),
+        retry=retry_if_exception_type(Exception),
+        retry_error_callback=lambda retry_state: None
+    )
     def review_code(self, code: str, file_path: str, context: str = "") -> List[ReviewComment]:
         """
         Review a code snippet using the LLM.

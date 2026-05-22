@@ -149,7 +149,7 @@ class CodeReviewPipeline:
         # Group nodes that are small enough to fit together
         batch = []
         batch_lines = 0
-        max_batch_lines = 200  # Maximum lines per batch
+        max_batch_lines = 100  # Reduced from 200 to avoid hitting token rate limits
         
         for node in code_nodes:
             node_lines = len(node.source.split('\n'))
