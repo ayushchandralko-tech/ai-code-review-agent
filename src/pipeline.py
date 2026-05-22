@@ -112,7 +112,7 @@ class CodeReviewPipeline:
     
     def _review_file(self, file_path: str, nodes: List[CodeNode], repo_path: Path) -> List[ReviewComment]:
         """
-        Review a single file.
+        Review a single file with batched API calls for speed.
         
         Args:
             file_path: Path to the file (already full path from parser)
@@ -132,15 +132,30 @@ class CodeReviewPipeline:
             print(f"Error reading {file_path}: {e}")
             return comments
         
-        # For each node, review the code
-        for node in nodes:
-            # Skip imports for now (usually not much to review)
-            if node.node_type == 'import':
-                continue
+        # Collect all code nodes to review (skip imports)
+        code_nodes = [node for node in nodes if node.node_type != 'import']
+        
+        if not code_nodes:
+            return comments
+        
+        # Batch nodes for efficient API calls
+        # Group nodes that are small enough to fit together
+        batch = []
+        batch_lines = 0
+        max_batch_lines = 200  # Maximum lines per batch
+        
+        for node in code_nodes:
+            node_lines = len(node.source.split('\n'))
             
-            # Check if node source is too large
-            if len(node.source.split('\n')) > self.chunker.max_lines:
-                # Chunk the node
+            # If node is too large, chunk it
+            if node_lines > self.chunker.max_lines:
+                # Flush current batch first
+                if batch:
+                    comments.extend(self._review_batch(batch, file_path, source))
+                    batch = []
+                    batch_lines = 0
+                
+                # Chunk the large node
                 chunks = self.chunker.chunk_code(node.source, f"{file_path}:{node.name}")
                 for chunk in chunks:
                     chunk_comments = self.reviewer.review_code(
@@ -150,15 +165,61 @@ class CodeReviewPipeline:
                     )
                     comments.extend(chunk_comments)
             else:
-                # Review the entire node
-                node_comments = self.reviewer.review_code(
-                    node.source,
-                    f"{file_path}:{node.name}",
-                    f"{node.node_type}: {node.name}"
-                )
-                comments.extend(node_comments)
+                # Add to batch if it fits
+                if batch_lines + node_lines <= max_batch_lines:
+                    batch.append(node)
+                    batch_lines += node_lines
+                else:
+                    # Flush current batch and start new one
+                    if batch:
+                        comments.extend(self._review_batch(batch, file_path, source))
+                    batch = [node]
+                    batch_lines = node_lines
+        
+        # Flush remaining batch
+        if batch:
+            comments.extend(self._review_batch(batch, file_path, source))
         
         return comments
+    
+    def _review_batch(self, nodes: List[CodeNode], file_path: str, source: str) -> List[ReviewComment]:
+        """
+        Review a batch of code nodes in a single API call.
+        
+        Args:
+            nodes: List of code nodes to review
+            file_path: Path to the file
+            source: Full file source code
+            
+        Returns:
+            List of ReviewComment objects
+        """
+        if not nodes:
+            return []
+        
+        # Combine all nodes into a single review request
+        combined_code = ""
+        node_info = []
+        
+        for node in nodes:
+            combined_code += f"# {node.node_type.upper()}: {node.name}\n"
+            combined_code += node.source + "\n\n"
+            node_info.append({
+                'name': node.name,
+                'type': node.node_type,
+                'line_start': node.line_start
+            })
+        
+        try:
+            comments = self.reviewer.review_code(
+                combined_code,
+                file_path,
+                f"Reviewing {len(nodes)} code elements: {', '.join([f'{n.type} {n.name}' for n in node_info])}"
+            )
+            return comments
+        except Exception as e:
+            print(f"Error reviewing batch: {e}")
+            return []
     
     def review_local_directory(self, directory: str) -> Dict[str, Any]:
         """

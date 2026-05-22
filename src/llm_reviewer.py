@@ -75,7 +75,7 @@ For each issue you identify, you must:
 
 Be conservative with confidence scores. If you're unsure, assign a lower confidence (0.3-0.6). If you're very certain, assign higher confidence (0.8-1.0).
 
-Return ONLY a JSON array with the following structure:
+IMPORTANT: Return ONLY a valid JSON array with the following structure:
 [
   {
     "line_number": <int>,
@@ -87,7 +87,9 @@ Return ONLY a JSON array with the following structure:
   }
 ]
 
-If no issues are found, return an empty array: []"""
+If no issues are found, return an empty array: []
+
+Do not include any text before or after the JSON. Do not use markdown code blocks. Return raw JSON only."""
     
     def __init__(self, model: str = "gpt-4o-mini", use_github_models: bool = False):
         """
