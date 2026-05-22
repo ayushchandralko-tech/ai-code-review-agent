@@ -31,6 +31,8 @@ class CodeReviewPipeline:
         # Set default model based on provider
         if provider == "groq":
             default_model = "llama-3.1-70b-versatile"
+        elif provider == "gemini":
+            default_model = "gemini-1.5-pro"
         else:
             default_model = "gpt-4o-mini"
         

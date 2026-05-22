@@ -1,4 +1,4 @@
-"""LLM integration module for code review using OpenAI, GitHub Models, or Groq."""
+"""LLM integration module for code review using OpenAI, GitHub Models, Groq, or Gemini."""
 
 import json
 import os
@@ -7,6 +7,7 @@ from dataclasses import dataclass, asdict
 from openai import OpenAI
 from dotenv import load_dotenv
 from tenacity import retry, stop_after_attempt, wait_exponential
+import google.generativeai as genai
 
 # Load environment variables
 load_dotenv()
@@ -56,7 +57,7 @@ class ReviewComment:
 
 
 class LLMReviewer:
-    """Review code using OpenAI, GitHub Models, or Groq."""
+    """Review code using OpenAI, GitHub Models, Groq, or Gemini."""
     
     SYSTEM_PROMPT = """You are an expert code reviewer with deep knowledge of software engineering best practices, security vulnerabilities, performance optimization, and clean code principles.
 
@@ -96,8 +97,8 @@ Do not include any text before or after the JSON. Do not use markdown code block
         Initialize the LLM reviewer.
         
         Args:
-            model: Model to use (e.g., "gpt-4o-mini", "llama-3.1-70b-versatile")
-            provider: Provider to use ("openai", "github", "groq")
+            model: Model to use (e.g., "gpt-4o-mini", "llama-3.1-70b-versatile", "gemini-1.5-pro")
+            provider: Provider to use ("openai", "github", "groq", "gemini")
         """
         self.model = model
         self.provider = provider
@@ -125,6 +126,15 @@ Do not include any text before or after the JSON. Do not use markdown code block
                 api_key=groq_key
             )
             print(f"Initialized Groq client with model: {model}")
+        elif provider == "gemini":
+            # Use Google Gemini (free, generous rate limits)
+            gemini_key = os.getenv("GEMINI_API_KEY")
+            if not gemini_key:
+                raise ValueError("GEMINI_API_KEY environment variable not set for Gemini")
+            
+            genai.configure(api_key=gemini_key)
+            self.client = genai.GenerativeModel(model)
+            print(f"Initialized Gemini client with model: {model}")
         else:
             # Use OpenAI (default)
             openai_key = os.getenv("OPENAI_API_KEY")
@@ -158,22 +168,36 @@ Do not include any text before or after the JSON. Do not use markdown code block
             provider_name = {
                 'github': 'GitHub Models',
                 'groq': 'Groq',
+                'gemini': 'Gemini',
                 'openai': 'OpenAI'
             }.get(self.provider, self.provider)
             print(f"Sending request to {self.model} via {provider_name}")
             print(f"Code length: {len(code)} characters")
             
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": self.SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0.3,  # Lower temperature for more consistent output
-                response_format={"type": "json_object"}
-            )
+            if self.provider == "gemini":
+                # Gemini uses a different API
+                prompt = f"{self.SYSTEM_PROMPT}\n\n{user_prompt}"
+                response = self.client.generate_content(
+                    prompt,
+                    generation_config=genai.types.GenerationConfig(
+                        temperature=0.3,
+                        response_mime_type="application/json"
+                    )
+                )
+                content = response.text
+            else:
+                # OpenAI-compatible API (OpenAI, GitHub Models, Groq)
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": self.SYSTEM_PROMPT},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    temperature=0.3,  # Lower temperature for more consistent output
+                    response_format={"type": "json_object"}
+                )
+                content = response.choices[0].message.content
             
-            content = response.choices[0].message.content
             print(f"Received response from LLM, length: {len(content)}")
             
             result = json.loads(content)
