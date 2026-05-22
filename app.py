@@ -142,7 +142,7 @@ def render_sidebar():
     elif llm_provider == "Gemini (Free)":
         model = st.sidebar.selectbox(
             "LLM Model",
-            ["gemini-1.5-pro", "gemini-1.5-flash"],
+            ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-pro"],
             help="Select the Gemini model to use for code review"
         )
     else:
