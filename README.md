@@ -172,7 +172,6 @@ The system follows a modular pipeline architecture with clear separation of conc
   - **OpenAI API Key** - Obtain from [platform.openai.com](https://platform.openai.com/api-keys)
   - **GitHub Token** - For GitHub Models (free tier, rate limited), create at [github.com/settings/tokens](https://github.com/settings/tokens)
   - **Groq API Key** - For Groq (free, fast, higher rate limits), obtain from [console.groq.com](https://console.groq.com)
-  - **Gemini API Key** - For Gemini (free, generous rate limits), obtain from [makersuite.google.com](https://makersuite.google.com)
 - **GitHub Token** (Optional) - For PR commenting, create at [github.com/settings/tokens](https://github.com/settings/tokens)
 
 ### Installation
@@ -223,11 +222,6 @@ GITHUB_TOKEN=ghp_your-github-token-here
 GROQ_API_KEY=gsk_your-groq-api-key-here
 ```
 
-**Option D: Using Gemini (Free, Generous Rate Limits)**
-```env
-GEMINI_API_KEY=your-gemini-api-key-here
-```
-
 Optionally add your GitHub token for PR commenting:
 ```env
 GITHUB_PR_TOKEN=ghp_your-github-token-here
@@ -249,12 +243,11 @@ The dashboard will automatically open at `http://localhost:8501`
 
 ### GitHub Repository Review
 
-1. **Select LLM Provider**: Choose between "OpenAI", "GitHub Models", "Groq (Free)", or "Gemini (Free)" in the sidebar
+1. **Select LLM Provider**: Choose between "OpenAI", "GitHub Models", or "Groq (Free)" in the sidebar
 2. **Enter API Key**: 
    - For OpenAI: Input your OpenAI API key
    - For GitHub Models: Input your GitHub token (free tier, rate limited)
    - For Groq: Input your Groq API key (free, fast, higher rate limits)
-   - For Gemini: Input your Gemini API key (free, generous rate limits)
 3. **Provide Repository URL**: Enter a GitHub repository URL (e.g., `https://github.com/username/repository`)
 4. **Optional PR Integration**: 
    - Enter the PR number to post comments directly
@@ -264,12 +257,11 @@ The dashboard will automatically open at `http://localhost:8501`
 
 ### Local Directory Review
 
-1. **Select LLM Provider**: Choose between "OpenAI", "GitHub Models", "Groq (Free)", or "Gemini (Free)" in the sidebar
+1. **Select LLM Provider**: Choose between "OpenAI", "GitHub Models", or "Groq (Free)" in the sidebar
 2. **Enter API Key**: 
    - For OpenAI: Input your OpenAI API key
    - For GitHub Models: Input your GitHub token (free tier, rate limited)
    - For Groq: Input your Groq API key (free, fast, higher rate limits)
-   - For Gemini: Input your Gemini API key (free, generous rate limits)
 3. **Select Input Method**: Choose "Local Directory" from the input options
 4. **Provide Path**: Enter the absolute path to your local code directory
 5. **Start Review**: Click "Start Code Review"
@@ -279,9 +271,9 @@ The dashboard will automatically open at `http://localhost:8501`
 
 | Parameter | Description | Default | Options |
 |-----------|-------------|---------|---------|
-| **LLM Provider** | Choose between OpenAI, GitHub Models, Groq, or Gemini | OpenAI | OpenAI, GitHub Models, Groq, Gemini |
+| **LLM Provider** | Choose between OpenAI, GitHub Models, or Groq | OpenAI | OpenAI, GitHub Models, Groq |
 | **Confidence Threshold** | Minimum confidence for high-confidence comments | 0.7 | 0.0 - 1.0 |
-| **LLM Model** | Model for code analysis | gpt-4o-mini | gpt-4o-mini, gpt-4o, llama-3.1-70b-versatile, gemini-1.5-pro |
+| **LLM Model** | Model for code analysis | gpt-4o-mini | gpt-4o-mini, gpt-4o, llama-3.1-70b-versatile |
 | **Max Files** | Limit number of files to analyze | None | 1 - 100 |
 
 ### Filtering Results
@@ -439,7 +431,6 @@ Streamlit Cloud provides the simplest deployment path:
      - For OpenAI: `OPENAI_API_KEY=sk-your-actual-key-here`
      - For GitHub Models: `GITHUB_TOKEN=ghp-your-token-here`
      - For Groq: `GROQ_API_KEY=gsk-your-token-here`
-     - For Gemini: `GEMINI_API_KEY=your-gemini-key-here`
    - (Optional) Add: `GITHUB_PR_TOKEN=ghp-your-token-here` for PR comments
 6. **Redeploy**: Click "Redeploy" to apply secrets
 

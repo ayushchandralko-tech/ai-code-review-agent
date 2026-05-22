@@ -69,8 +69,8 @@ def render_sidebar():
     # LLM Provider selection
     llm_provider = st.sidebar.radio(
         "LLM Provider",
-        ["OpenAI", "GitHub Models", "Groq (Free)", "Gemini (Free)"],
-        help="Choose LLM provider: OpenAI (paid), GitHub Models (free, rate limited), Groq (free, faster), or Gemini (free, generous limits)"
+        ["OpenAI", "GitHub Models", "Groq (Free)"],
+        help="Choose LLM provider: OpenAI (paid, reliable), GitHub Models (free, rate limited), or Groq (free, faster)"
     )
     
     if llm_provider == "OpenAI":
@@ -100,15 +100,6 @@ def render_sidebar():
         )
         if groq_key:
             os.environ["GROQ_API_KEY"] = groq_key
-    else:  # Gemini
-        # Gemini API Key input
-        gemini_key = st.sidebar.text_input(
-            "Gemini API Key",
-            type="password",
-            help="Enter your Gemini API key (free, generous rate limits) - Get it from makersuite.google.com"
-        )
-        if gemini_key:
-            os.environ["GEMINI_API_KEY"] = gemini_key
     
     # GitHub Token for PR comments (optional, separate from LLM)
     st.sidebar.divider()
@@ -138,12 +129,6 @@ def render_sidebar():
             "LLM Model",
             ["llama-3.1-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"],
             help="Select the Groq model to use for code review"
-        )
-    elif llm_provider == "Gemini (Free)":
-        model = st.sidebar.selectbox(
-            "LLM Model",
-            ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-pro"],
-            help="Select the Gemini model to use for code review"
         )
     else:
         model = st.sidebar.selectbox(
@@ -461,12 +446,9 @@ def main():
     elif llm_provider == "GitHub Models":
         api_key_set = bool(os.getenv("GITHUB_TOKEN"))
         warning_message = "⚠️ Please enter your GitHub Token in the sidebar to enable code review"
-    elif llm_provider == "Groq (Free)":
+    else:  # Groq
         api_key_set = bool(os.getenv("GROQ_API_KEY"))
         warning_message = "⚠️ Please enter your Groq API Key in the sidebar to enable code review"
-    else:  # Gemini
-        api_key_set = bool(os.getenv("GEMINI_API_KEY"))
-        warning_message = "⚠️ Please enter your Gemini API Key in the sidebar to enable code review"
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -489,8 +471,6 @@ def main():
                 provider = "github"
             elif llm_provider == "Groq (Free)":
                 provider = "groq"
-            elif llm_provider == "Gemini (Free)":
-                provider = "gemini"
             else:
                 provider = "openai"
             
