@@ -69,8 +69,8 @@ def render_sidebar():
     # LLM Provider selection
     llm_provider = st.sidebar.radio(
         "LLM Provider",
-        ["OpenAI", "GitHub Models"],
-        help="Choose between OpenAI API or GitHub Models (free tier available)"
+        ["OpenAI", "GitHub Models", "Groq (Free)"],
+        help="Choose LLM provider: OpenAI (paid), GitHub Models (free, rate limited), or Groq (free, faster)"
     )
     
     if llm_provider == "OpenAI":
@@ -82,15 +82,24 @@ def render_sidebar():
         )
         if api_key:
             os.environ["OPENAI_API_KEY"] = api_key
-    else:
+    elif llm_provider == "GitHub Models":
         # GitHub Token input
         github_token = st.sidebar.text_input(
             "GitHub Token",
             type="password",
-            help="Enter your GitHub token for GitHub Models (free tier available)"
+            help="Enter your GitHub token for GitHub Models (free tier available, rate limited)"
         )
         if github_token:
             os.environ["GITHUB_TOKEN"] = github_token
+    else:  # Groq
+        # Groq API Key input
+        groq_key = st.sidebar.text_input(
+            "Groq API Key",
+            type="password",
+            help="Enter your Groq API key (free, fast, higher rate limits) - Get it from console.groq.com"
+        )
+        if groq_key:
+            os.environ["GROQ_API_KEY"] = groq_key
     
     # GitHub Token for PR comments (optional, separate from LLM)
     st.sidebar.divider()
@@ -114,12 +123,19 @@ def render_sidebar():
         help="Minimum confidence for high-confidence comments"
     )
     
-    # Model selection
-    model = st.sidebar.selectbox(
-        "LLM Model",
-        ["gpt-4o-mini", "gpt-4o"],
-        help="Select the model to use for code review"
-    )
+    # Model selection (based on provider)
+    if llm_provider == "Groq (Free)":
+        model = st.sidebar.selectbox(
+            "LLM Model",
+            ["llama-3.1-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"],
+            help="Select the Groq model to use for code review"
+        )
+    else:
+        model = st.sidebar.selectbox(
+            "LLM Model",
+            ["gpt-4o-mini", "gpt-4o"],
+            help="Select the model to use for code review"
+        )
     
     # Max files (for testing)
     max_files = st.sidebar.number_input(
@@ -427,9 +443,12 @@ def main():
     if llm_provider == "OpenAI":
         api_key_set = bool(os.getenv("OPENAI_API_KEY"))
         warning_message = "⚠️ Please enter your OpenAI API Key in the sidebar to enable code review"
-    else:
+    elif llm_provider == "GitHub Models":
         api_key_set = bool(os.getenv("GITHUB_TOKEN"))
         warning_message = "⚠️ Please enter your GitHub Token in the sidebar to enable code review"
+    else:  # Groq
+        api_key_set = bool(os.getenv("GROQ_API_KEY"))
+        warning_message = "⚠️ Please enter your Groq API Key in the sidebar to enable code review"
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -448,10 +467,16 @@ def main():
         
         try:
             # Create pipeline with correct provider
-            use_github = (llm_provider == "GitHub Models")
+            if llm_provider == "GitHub Models":
+                provider = "github"
+            elif llm_provider == "Groq (Free)":
+                provider = "groq"
+            else:
+                provider = "openai"
+            
             pipeline = CodeReviewPipeline(
                 confidence_threshold=confidence_threshold,
-                use_github_models=use_github
+                provider=provider
             )
             pipeline.reviewer.model = model
             

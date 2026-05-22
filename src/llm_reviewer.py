@@ -1,4 +1,4 @@
-"""LLM integration module for code review using OpenAI GPT-4o-mini or GitHub Models."""
+"""LLM integration module for code review using OpenAI, GitHub Models, or Groq."""
 
 import json
 import os
@@ -56,7 +56,7 @@ class ReviewComment:
 
 
 class LLMReviewer:
-    """Review code using OpenAI GPT-4o-mini or GitHub Models."""
+    """Review code using OpenAI, GitHub Models, or Groq."""
     
     SYSTEM_PROMPT = """You are an expert code reviewer with deep knowledge of software engineering best practices, security vulnerabilities, performance optimization, and clean code principles.
 
@@ -91,18 +91,18 @@ If no issues are found, return an empty array: []
 
 Do not include any text before or after the JSON. Do not use markdown code blocks. Return raw JSON only."""
     
-    def __init__(self, model: str = "gpt-4o-mini", use_github_models: bool = False):
+    def __init__(self, model: str = "gpt-4o-mini", provider: str = "openai"):
         """
         Initialize the LLM reviewer.
         
         Args:
-            model: Model to use (e.g., "gpt-4o-mini")
-            use_github_models: Whether to use GitHub Models instead of OpenAI
+            model: Model to use (e.g., "gpt-4o-mini", "llama-3.1-70b-versatile")
+            provider: Provider to use ("openai", "github", "groq")
         """
         self.model = model
-        self.use_github_models = use_github_models
+        self.provider = provider
         
-        if use_github_models:
+        if provider == "github":
             # Use GitHub Models
             github_token = os.getenv("GITHUB_TOKEN")
             if not github_token:
@@ -114,8 +114,19 @@ Do not include any text before or after the JSON. Do not use markdown code block
                 api_key=github_token
             )
             print(f"Initialized GitHub Models client with model: {model}")
+        elif provider == "groq":
+            # Use Groq (free, fast, higher rate limits)
+            groq_key = os.getenv("GROQ_API_KEY")
+            if not groq_key:
+                raise ValueError("GROQ_API_KEY environment variable not set for Groq")
+            
+            self.client = OpenAI(
+                base_url="https://api.groq.com/openai/v1",
+                api_key=groq_key
+            )
+            print(f"Initialized Groq client with model: {model}")
         else:
-            # Use OpenAI
+            # Use OpenAI (default)
             openai_key = os.getenv("OPENAI_API_KEY")
             if not openai_key:
                 raise ValueError("OPENAI_API_KEY environment variable not set")

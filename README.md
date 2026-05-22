@@ -170,7 +170,8 @@ The system follows a modular pipeline architecture with clear separation of conc
 - **Python 3.8+** - Download from [python.org](https://www.python.org/downloads/)
 - **API Key** - Choose one:
   - **OpenAI API Key** - Obtain from [platform.openai.com](https://platform.openai.com/api-keys)
-  - **GitHub Token** - For GitHub Models (free tier available), create at [github.com/settings/tokens](https://github.com/settings/tokens)
+  - **GitHub Token** - For GitHub Models (free tier, rate limited), create at [github.com/settings/tokens](https://github.com/settings/tokens)
+  - **Groq API Key** - For Groq (free, fast, higher rate limits), obtain from [console.groq.com](https://console.groq.com)
 - **GitHub Token** (Optional) - For PR commenting, create at [github.com/settings/tokens](https://github.com/settings/tokens)
 
 ### Installation
@@ -216,6 +217,11 @@ OPENAI_API_KEY=sk-your-actual-api-key-here
 GITHUB_TOKEN=ghp_your-github-token-here
 ```
 
+**Option C: Using Groq (Free, Faster, Higher Rate Limits)**
+```env
+GROQ_API_KEY=gsk_your-groq-api-key-here
+```
+
 Optionally add your GitHub token for PR commenting:
 ```env
 GITHUB_PR_TOKEN=ghp_your-github-token-here
@@ -237,10 +243,11 @@ The dashboard will automatically open at `http://localhost:8501`
 
 ### GitHub Repository Review
 
-1. **Select LLM Provider**: Choose between "OpenAI" or "GitHub Models" in the sidebar
+1. **Select LLM Provider**: Choose between "OpenAI", "GitHub Models", or "Groq (Free)" in the sidebar
 2. **Enter API Key**: 
    - For OpenAI: Input your OpenAI API key
-   - For GitHub Models: Input your GitHub token (free tier available)
+   - For GitHub Models: Input your GitHub token (free tier, rate limited)
+   - For Groq: Input your Groq API key (free, fast, higher rate limits)
 3. **Provide Repository URL**: Enter a GitHub repository URL (e.g., `https://github.com/username/repository`)
 4. **Optional PR Integration**: 
    - Enter the PR number to post comments directly
@@ -250,10 +257,11 @@ The dashboard will automatically open at `http://localhost:8501`
 
 ### Local Directory Review
 
-1. **Select LLM Provider**: Choose between "OpenAI" or "GitHub Models" in the sidebar
+1. **Select LLM Provider**: Choose between "OpenAI", "GitHub Models", or "Groq (Free)" in the sidebar
 2. **Enter API Key**: 
    - For OpenAI: Input your OpenAI API key
-   - For GitHub Models: Input your GitHub token (free tier available)
+   - For GitHub Models: Input your GitHub token (free tier, rate limited)
+   - For Groq: Input your Groq API key (free, fast, higher rate limits)
 3. **Select Input Method**: Choose "Local Directory" from the input options
 4. **Provide Path**: Enter the absolute path to your local code directory
 5. **Start Review**: Click "Start Code Review"
@@ -263,9 +271,9 @@ The dashboard will automatically open at `http://localhost:8501`
 
 | Parameter | Description | Default | Options |
 |-----------|-------------|---------|---------|
-| **LLM Provider** | Choose between OpenAI or GitHub Models | OpenAI | OpenAI, GitHub Models |
+| **LLM Provider** | Choose between OpenAI, GitHub Models, or Groq | OpenAI | OpenAI, GitHub Models, Groq |
 | **Confidence Threshold** | Minimum confidence for high-confidence comments | 0.7 | 0.0 - 1.0 |
-| **LLM Model** | Model for code analysis | gpt-4o-mini | gpt-4o-mini, gpt-4o |
+| **LLM Model** | Model for code analysis | gpt-4o-mini | gpt-4o-mini, gpt-4o, llama-3.1-70b-versatile |
 | **Max Files** | Limit number of files to analyze | None | 1 - 100 |
 
 ### Filtering Results
@@ -422,6 +430,7 @@ Streamlit Cloud provides the simplest deployment path:
    - Add one of the following:
      - For OpenAI: `OPENAI_API_KEY=sk-your-actual-key-here`
      - For GitHub Models: `GITHUB_TOKEN=ghp-your-token-here`
+     - For Groq: `GROQ_API_KEY=gsk-your-token-here`
    - (Optional) Add: `GITHUB_PR_TOKEN=ghp-your-token-here` for PR comments
 6. **Redeploy**: Click "Redeploy" to apply secrets
 

@@ -15,19 +15,26 @@ from src.llm_reviewer import LLMReviewer, ReviewComment
 class CodeReviewPipeline:
     """Orchestrates the entire code review pipeline."""
     
-    def __init__(self, base_dir: str = "repos", confidence_threshold: float = 0.7, use_github_models: bool = False):
+    def __init__(self, base_dir: str = "repos", confidence_threshold: float = 0.7, provider: str = "openai"):
         """
         Initialize the code review pipeline.
         
         Args:
             base_dir: Base directory for cloned repositories
             confidence_threshold: Threshold for separating high/low confidence comments
-            use_github_models: Whether to use GitHub Models instead of OpenAI
+            provider: LLM provider to use ("openai", "github", "groq")
         """
         self.cloner = RepoCloner(base_dir)
         self.parser = ASTParser()
         self.chunker = CodeChunker(max_lines=100, overlap_lines=10)
-        self.reviewer = LLMReviewer(model="gpt-4o-mini", use_github_models=use_github_models)
+        
+        # Set default model based on provider
+        if provider == "groq":
+            default_model = "llama-3.1-70b-versatile"
+        else:
+            default_model = "gpt-4o-mini"
+        
+        self.reviewer = LLMReviewer(model=default_model, provider=provider)
         self.confidence_threshold = confidence_threshold
         
         self.results = {
