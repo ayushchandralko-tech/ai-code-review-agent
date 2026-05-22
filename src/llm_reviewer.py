@@ -150,7 +150,12 @@ Do not include any text before or after the JSON. Do not use markdown code block
         user_prompt = self._build_user_prompt(code, file_path, context)
         
         try:
-            print(f"Sending request to {self.model} via {'GitHub Models' if self.use_github_models else 'OpenAI'}")
+            provider_name = {
+                'github': 'GitHub Models',
+                'groq': 'Groq',
+                'openai': 'OpenAI'
+            }.get(self.provider, self.provider)
+            print(f"Sending request to {self.model} via {provider_name}")
             print(f"Code length: {len(code)} characters")
             
             response = self.client.chat.completions.create(
